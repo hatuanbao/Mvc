@@ -305,12 +305,14 @@ namespace Microsoft.AspNetCore.Mvc.Internal
         {
             var controllerContext = _controllerContext;
             var executor = _cacheEntry.ActionMethodExecutor;
+            var actionResultOfTUnwrapper = _cacheEntry.ActionResultOfTUnwrapper;
             var controller = _instance;
             var arguments = _arguments;
             var orderedArguments = PrepareArguments(arguments, executor);
 
             var diagnosticSource = _diagnosticSource;
             var logger = _logger;
+            var returnType = executor.MethodReturnType;
 
             IActionResult result = null;
             try
@@ -321,7 +323,6 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                     controller);
                 logger.ActionMethodExecuting(controllerContext, orderedArguments);
 
-                var returnType = executor.MethodReturnType;
                 if (returnType == typeof(void))
                 {
                     // Sync method returning void
@@ -345,6 +346,30 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                         throw new InvalidOperationException(
                             Resources.FormatActionResult_ActionReturnValueCannotBeNull(typeof(IActionResult)));
                     }
+                }
+                else if (actionResultOfTUnwrapper.IsActionResultOfT)
+                {
+                    object resultAsObject;
+                    if (executor.IsMethodAsync)
+                    {
+                        // Async method returning awaitable-of-ActionResult<T> (e.g., Task<ActionResult<Person>>)
+                        // We have to use ExecuteAsync because we don't know the awaitable's type at compile time.
+                        resultAsObject = await executor.ExecuteAsync(controller, orderedArguments);
+                    }
+                    else
+                    {
+                        // Sync method returning ActionResult<T>
+                        resultAsObject = executor.Execute(controller, orderedArguments);
+                    }
+
+                    result = actionResultOfTUnwrapper.GetActionResult(resultAsObject);
+
+                    if (result == null)
+                    {
+                        throw new InvalidOperationException(
+                            Resources.FormatActionResult_ActionReturnValueCannotBeNull(typeof(ActionResult<>)));
+                    }
+
                 }
                 else if (IsResultIActionResult(executor))
                 {
@@ -370,10 +395,8 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                 {
                     // Sync method returning arbitrary object
                     var resultAsObject = executor.Execute(controller, orderedArguments);
-                    result = resultAsObject as IActionResult ?? new ObjectResult(resultAsObject)
-                    {
-                        DeclaredType = returnType,
-                    };
+                    ConvertToActionResult(resultAsObject);
+
                 }
                 else if (executor.AsyncResultType == typeof(void))
                 {
@@ -385,10 +408,7 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                 {
                     // Async method returning awaitable-of-nonvoid
                     var resultAsObject = await executor.ExecuteAsync(controller, orderedArguments);
-                    result = resultAsObject as IActionResult ?? new ObjectResult(resultAsObject)
-                    {
-                        DeclaredType = executor.AsyncResultType,
-                    };
+                    ConvertToActionResult(resultAsObject);
                 }
 
                 _result = result;
@@ -401,6 +421,25 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                     arguments,
                     controllerContext,
                     result);
+            }
+
+            void ConvertToActionResult(object resultAsObject)
+            {
+                if (resultAsObject is IActionResult actionResult)
+                {
+                    result = actionResult;
+                }
+                else if (actionResultOfTUnwrapper.IsActionResultOfT)
+                {
+                    result = actionResultOfTUnwrapper.GetActionResult(resultAsObject);
+                }
+                else
+                {
+                    result = new ObjectResult(resultAsObject)
+                    {
+                        DeclaredType = returnType,
+                    };
+                }
             }
         }
 

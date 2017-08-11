@@ -43,14 +43,14 @@ namespace FormatterWebSite.Controllers
         }
 
         [HttpPost]
-        public IActionResult ReturnInput([FromBody]DummyClass dummyObject)
+        public ActionResult<string> ReturnInput([FromBody]DummyClass dummyObject)
         {
             if (!ModelState.IsValid)
             {
                 return BadRequest();
             }
 
-            return Content(dummyObject.SampleInt.ToString());
+            return dummyObject.SampleInt.ToString();
         }
 
         [HttpPost]

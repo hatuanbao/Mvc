@@ -76,6 +76,9 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                     actionDescriptor.ControllerTypeInfo,
                     parameterDefaultValues);
 
+                var returnType = executor.IsMethodAsync ? executor.AsyncResultType : executor.MethodReturnType;
+                var unwrapper = new ActionResultOfTUnwrapper(returnType);
+
                 var controllerFactory = _controllerFactoryProvider.CreateControllerFactory(actionDescriptor);
                 var controllerReleaser = _controllerFactoryProvider.CreateControllerReleaser(actionDescriptor);
                 var propertyBinderFactory = ControllerBinderDelegateProvider.CreateBinderDelegate(
@@ -89,7 +92,8 @@ namespace Microsoft.AspNetCore.Mvc.Internal
                     controllerFactory, 
                     controllerReleaser,
                     propertyBinderFactory,
-                    executor);
+                    executor,
+                    unwrapper);
                 cacheEntry = cache.Entries.GetOrAdd(actionDescriptor, cacheEntry);
             }
             else

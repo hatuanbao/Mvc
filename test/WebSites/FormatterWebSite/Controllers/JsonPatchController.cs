@@ -11,7 +11,7 @@ namespace FormatterWebSite.Controllers
     public class JsonPatchController : Controller
     {
         [HttpPatch]
-        public IActionResult PatchProduct([FromBody] JsonPatchDocument<Product> patchDoc)
+        public ActionResult<Product> PatchProduct([FromBody] JsonPatchDocument<Product> patchDoc)
         {
             if (!ModelState.IsValid)
             {
@@ -26,7 +26,7 @@ namespace FormatterWebSite.Controllers
                 return BadRequest(ModelState);
             }
 
-            return Ok(product);
+            return product;
         }
 
         private Product CreateProduct()

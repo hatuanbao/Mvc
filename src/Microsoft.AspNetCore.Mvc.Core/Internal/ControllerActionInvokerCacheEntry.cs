@@ -14,13 +14,15 @@ namespace Microsoft.AspNetCore.Mvc.Internal
             Func<ControllerContext, object> controllerFactory,
             Action<ControllerContext, object> controllerReleaser,
             ControllerBinderDelegate controllerBinderDelegate,
-            ObjectMethodExecutor actionMethodExecutor)
+            ObjectMethodExecutor actionMethodExecutor,
+            ActionResultOfTUnwrapper unwrapper)
         {
             ControllerFactory = controllerFactory;
             ControllerReleaser = controllerReleaser;
             ControllerBinderDelegate = controllerBinderDelegate;
             CachedFilters = cachedFilters;
             ActionMethodExecutor = actionMethodExecutor;
+            ActionResultOfTUnwrapper = unwrapper;
         }
 
         public FilterItem[] CachedFilters { get; }
@@ -32,5 +34,7 @@ namespace Microsoft.AspNetCore.Mvc.Internal
         public ControllerBinderDelegate ControllerBinderDelegate { get; }
 
         internal ObjectMethodExecutor ActionMethodExecutor { get; }
+
+        internal ActionResultOfTUnwrapper ActionResultOfTUnwrapper { get; }
     }
 }

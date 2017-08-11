@@ -29,14 +29,14 @@ namespace FormatterWebSite.Controllers
         }
 
         [HttpPost]
-        public IActionResult CreateEmployee([FromBody]Employee employee)
+        public ActionResult<Employee> CreateEmployee([FromBody]Employee employee)
         {
-            if(!ModelState.IsValid)
+            if (!ModelState.IsValid)
             {
                 return BadRequest(ModelState);
             }
 
-            return new ObjectResult(employee);
+            return employee;
         }
 
         public class Employee
